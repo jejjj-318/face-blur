@@ -1,0 +1,11 @@
+*
+!requirements.txt
+!constraints.txt
+!requirements-dev.txt
+!app/
+!app/**
+!models/
+!models/**
+!tests/
+!tests/**
+**/__pycache__

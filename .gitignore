@@ -1,0 +1,9 @@
+__pycache__/
+.pytest_cache/
+.venv/
+data/
+qa/
+dist/
+*.mp4
+*.mov
+*.webm

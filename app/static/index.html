@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Face Blur — размытие лиц</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <header class="header">
+      <a class="brand" href="/" aria-label="Face Blur, главная"
+        ><span class="brand-icon">▧</span> Face Blur</a
+      ><span class="local"><i></i> Локальная обработка</span>
+    </header>
+    <main class="layout">
+      <aside class="library">
+        <div class="eyebrow">ВАШИ ВИДЕО</div>
+        <h1>Лица под маской</h1>
+        <p class="muted">
+          Загрузите видео, проверьте зоны и сохраните результат.
+        </p>
+        <button id="upload" class="primary full">＋ Выбрать видео</button>
+        <input id="file" type="file" accept=".mp4,.mov,.webm,.mkv" hidden />
+        <p class="hint">До 250 МБ · до 10 минут<br />MP4, MOV, MKV, WebM</p>
+        <div id="upload-state" role="status" hidden>
+          <span></span><progress max="100" value="0"></progress>
+        </div>
+        <div
+          id="library"
+          class="video-list"
+          aria-label="Загруженные видео"
+        ></div>
+        <p class="library-note">
+          Видео остаются на этом компьютере. Ненужные записи можно удалить из
+          списка.
+        </p>
+      </aside>
+      <section class="workspace">
+        <div id="notice" role="alert" hidden></div>
+        <section id="empty" class="empty card">
+          <div class="empty-icon" aria-hidden="true">▧</div>
+          <div class="eyebrow">НАЧНИТЕ С ВИДЕО</div>
+          <h2>Скрыть лица. Сохранить историю.</h2>
+          <p>
+            Автоматическое обнаружение, точная правка зон и готовое видео в
+            одном окне.
+          </p>
+          <ol class="steps">
+            <li><b>01</b><span>Выберите видео</span></li>
+            <li><b>02</b><span>Проверьте маски</span></li>
+            <li><b>03</b><span>Скачайте результат</span></li>
+          </ol>
+        </section>
+        <section id="processing" class="card processing" hidden>
+          <div class="spinner"></div>
+          <h2 id="process-title">Подготовка видео</h2>
+          <p id="process-description" class="muted"></p>
+          <progress id="progress" max="100" value="0"></progress
+          ><span id="percent" role="status">0%</span>
+        </section>
+        <section id="editor" hidden>
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">01 / ПРОВЕРКА МАСОК</div>
+              <h2 id="filename"></h2>
+              <p id="metadata" class="muted"></p>
+            </div>
+            <span id="detected" class="badge"></span>
+          </div>
+          <div class="editor-grid">
+            <div class="card viewer">
+              <div class="viewer-toolbar">
+                <span id="frame-mode">Кадр с размытием</span
+                ><label class="switch"
+                  ><input id="blur-preview" type="checkbox" checked />
+                  Показывать размытие</label
+                >
+              </div>
+              <div id="stage" class="stage">
+                <img id="frame" alt="Кадр выбранного видео" /><canvas
+                  id="canvas"
+                  aria-label="Зоны размытия. Координаты выбранной зоны также доступны в форме ниже."
+                ></canvas
+                ><span id="frame-loading" hidden>Обновление кадра…</span>
+              </div>
+              <div class="timeline">
+                <button id="previous" class="icon" aria-label="Предыдущий кадр">
+                  ‹</button
+                ><input
+                  id="timeline"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.04"
+                  value="0"
+                  aria-label="Время кадра"
+                /><button id="next" class="icon" aria-label="Следующий кадр">
+                  ›</button
+                ><output id="time">0:00.00</output>
+              </div>
+              <p class="hint viewer-hint">
+                Выберите зону. Перетащите её или потяните за нижний правый угол.
+                Для новой зоны нажмите «Добавить» и выделите прямоугольник.
+              </p>
+              <details>
+                <summary>Посмотреть исходное видео</summary>
+                <video
+                  id="source"
+                  controls
+                  preload="metadata"
+                  playsinline
+                ></video>
+              </details>
+            </div>
+            <div class="card settings">
+              <div class="settings-title">
+                <h3>Настройки размытия</h3>
+                <output id="strength-value">70%</output>
+              </div>
+              <label for="strength">Степень размытия</label
+              ><input
+                id="strength"
+                type="range"
+                min="10"
+                max="100"
+                step="1"
+                value="70"
+              />
+              <div class="range-labels">
+                <span>Мягче</span><span>Сильнее</span>
+              </div>
+              <hr />
+              <div class="settings-title">
+                <h3>Зоны</h3>
+                <button id="add" class="small">＋ Добавить</button>
+              </div>
+              <div class="legend">
+                <span><i class="teal"></i> Автоматические</span
+                ><span><i class="orange"></i> Ручные</span>
+              </div>
+              <div id="zones" class="zones" aria-label="Зоны размытия"></div>
+              <p id="no-zones" class="hint" hidden>
+                Лица не найдены. Добавьте зоны вручную.
+              </p>
+              <div id="zone-form" hidden>
+                <div class="settings-title">
+                  <b id="zone-name"></b
+                  ><label class="switch"
+                    ><input id="enabled" type="checkbox" checked />
+                    Включена</label
+                  >
+                </div>
+                <div class="coordinates">
+                  <label
+                    >X, %<input
+                      id="box-x"
+                      type="number"
+                      min="0"
+                      max="99.5"
+                      step="0.1" /></label
+                  ><label
+                    >Y, %<input
+                      id="box-y"
+                      type="number"
+                      min="0"
+                      max="99.5"
+                      step="0.1" /></label
+                  ><label
+                    >Ширина, %<input
+                      id="box-w"
+                      type="number"
+                      min="0.5"
+                      max="100"
+                      step="0.1" /></label
+                  ><label
+                    >Высота, %<input
+                      id="box-h"
+                      type="number"
+                      min="0.5"
+                      max="100"
+                      step="0.1"
+                  /></label>
+                </div>
+                <p id="auto-help" class="hint">
+                  Изменение применяется ко всей автоматической зоне. Движение
+                  лица сохраняется.
+                </p>
+                <div id="manual-controls" hidden>
+                  <div class="coordinates">
+                    <label
+                      >Начало, с<input
+                        id="start"
+                        type="number"
+                        min="0"
+                        step="0.01" /></label
+                    ><label
+                      >Конец, с<input
+                        id="end"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                    /></label>
+                  </div>
+                  <div class="keyframe-actions">
+                    <button id="keyframe" class="small">
+                      ＋ Опорный кадр здесь</button
+                    ><button id="remove-keyframe" class="small">
+                      Убрать кадр
+                    </button>
+                  </div>
+                  <p id="keyframe-count" class="hint"></p>
+                  <p class="hint">
+                    Одна позиция — неподвижная зона. Несколько опорных кадров
+                    задают её движение.
+                  </p>
+                  <button id="remove-zone" class="text-button danger">
+                    Удалить ручную зону
+                  </button>
+                </div>
+                <button id="reset-zone" class="text-button">
+                  Сбросить исправление
+                </button>
+              </div>
+              <hr />
+              <p class="hint">
+                Проверьте лица на всём видео, особенно при поворотах головы и
+                перекрытиях. Пропущенные лица закройте ручными зонами.
+              </p>
+              <button id="render" class="primary full">
+                Сформировать видео →
+              </button>
+            </div>
+          </div>
+        </section>
+        <section id="result" class="card result" hidden>
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">02 / ГОТОВЫЙ РЕЗУЛЬТАТ</div>
+              <h2>Видео с размытыми лицами</h2>
+              <p id="result-note" class="muted">
+                Просмотрите результат перед скачиванием.
+              </p>
+            </div>
+            <a id="download" class="primary" download>↓ Скачать MP4</a>
+          </div>
+          <video
+            id="result-video"
+            controls
+            preload="metadata"
+            playsinline
+          ></video>
+        </section>
+        <footer>Face Blur · Учебный проект по обработке видео</footer>
+      </section>
+    </main>
+  </body>
+</html>
