@@ -7,3 +7,4 @@ dist/
 *.mp4
 *.mov
 *.webm
+.idea/
